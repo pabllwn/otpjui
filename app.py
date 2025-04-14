@@ -7,6 +7,7 @@ import asyncio
 import nest_asyncio
 import os
 
+# تعديل: تطبيق Nest Asyncio بعد استيراد المكتبات الأساسية
 nest_asyncio.apply()
 
 # إعداد Flask
@@ -135,7 +136,9 @@ def run_flask():
 
 if __name__ == "__main__":
     # تشغيل Flask في Thread منفصل
-    Thread(target=run_flask).start()
+    flask_thread = Thread(target=run_flask)
+    flask_thread.daemon = True
+    flask_thread.start()
+
     # تشغيل بوت تيليغرام
     asyncio.run(run_bot())
-        
