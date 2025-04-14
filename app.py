@@ -9,57 +9,37 @@ import threading
 nest_asyncio.apply()
 
 # إعدادات البوت
-TOKEN = "8027706435:AAF9Wdhshc3PLs7Vc5sN1njmeB4M9aIEVX8"
+TOKEN = "8027706435:AAG9y4UGSl9Ha4pdqc7ZmLEK6ETTKxMsD7A"
 CHANNEL_ID = "@LAZARUS_OTP"
 ADMIN_USERNAME = "@CKRACKING_MOROCCO"
 VALID_KEYS = ["EXA7123", "VIPKEY000"]
 
-services = ["Netflix", "PayPal", "Bank", "Coinbase", "Spotify", "cvv", "pin", "crypto", "applepay", "amazon", "microsoft", "venmo", "cashapp", "quadpay"]
-names = ["John", "Alice", "Mark", "Sophia", "Leo", "Emma", "Ahmed", "Amine", "Ahmed", "Jerry", "Salma", "William", "George", "Peris"]
+services = [
+    "Netflix", "PayPal", "Bank", "Coinbase", "Spotify", "cvv", "pin", "crypto",
+    "applepay", "amazon", "microsoft", "venmo", "cashapp", "quadpay"
+]
 
+names = [
+    "John", "Alice", "Mark", "Sophia", "Leo", "Emma", "Ahmed", "Amine",
+    "Jerry", "Salma", "William", "George", "Peris"
+]
+
+# توليد OTP
 def generate_otp():
     return ''.join([str(random.randint(0, 9)) for _ in range(6)])
 
+# رسالة /start
 start_message = """
-🚀 Welcome to Our Otp Bot 🚀
+🚀 Welcome to Our OTP Bot 🚀
 
-🔐 ➜ /redeem | Redeem your subscription
-⏱ ➜ /plan | Check your subscription
+🔐 /redeem - Redeem your subscription
+⏱ /plan - Check your subscription
 
-📝  Custom Commands  📝
-🧾 ➜ /createscript | Create custom scripts
-🔏 ➜ /script [scriptid] | View script
-🗣 ➜ /customcall | Call with script
+🛒 Buy key from: {admin}
+📢 Join our channel: {channel}
+""".format(admin=ADMIN_USERNAME, channel=CHANNEL_ID)
 
-📝 Calling Modules
-📞 ➜ /call | Capture PayPal, CoinBase...
-🏦 ➜ /bank | Capture OTP Bank
-💳 ➜ /cvv | Capture CVV
-🔢 ➜ /pin | Capture PIN
-🍏 ➜ /applepay | Capture OTP Credit Card
-🔵 ➜ /coinbase | Capture 2FA Code
-💸 ➜ /crypto | Capture Crypto Code 
-📦 ➜ /amazon | Approval Authentication
-💻 ➜ /microsoft | Capture Microsoft Code
-🅿️ ➜ /paypal | Capture Paypal Code
-🏦 ➜ /venmo | Capture Venmo Code
-💵 ➜ /cashapp | Capture Cashapp Code
-💳 ➜ /quadpay | Capture quadpay Code
-📟 ➜ /carrier | Capture carrier Code
-📧 ➜ /email | grab Email code
-🕖 ➜ /remind | remind victim
-
-SET CUSTOM VOICE
-🗣 ➜ /customvoice | Modify the TTS
-❗️ ➜ EXAMPLE: /customvoice number spoof service name sid language
-
-🔰  Purchase LAZARUS OTP  🔰
-💎 Extras
-◆ ⌨️ ⮞ /recall for re calling 
-◆ ❓ ⮞ Do '?' on from number for instant random spoof number
-"""
-
-# Handlers
+# الرد على /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("📢 Channel", url="https://t.me/LAZARUS_OTP")],
@@ -68,8 +48,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(start_message, reply_markup=reply_markup)
 
+# الرد على /plan
 async def plan(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    plan_message = f"""
+    message = f"""
 ❌ You don't have any active subscription.
 
 💰 Pricing Plans:
@@ -83,8 +64,9 @@ async def plan(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 💬 Contact {ADMIN_USERNAME} to buy a subscription.
 """
-    await update.message.reply_text(plan_message)
+    await update.message.reply_text(message)
 
+# الرد على /redeem
 async def redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
     args = context.args
     if not args:
@@ -94,13 +76,16 @@ async def redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if key in VALID_KEYS:
             await update.message.reply_text("✅ Key is valid! Your subscription has been activated.")
         else:
-            await update.message.reply_text(f"❌ Invalid Key!\nPlease contact {ADMIN_USERNAME} for a valid one.", parse_mode="Markdown")
+            await update.message.reply_text(
+                f"❌ Invalid Key!\nPlease contact {ADMIN_USERNAME} for a valid one.",
+                parse_mode="Markdown"
+            )
 
+# إرسال رسائل عشوائية
 async def send_random_message(bot: Bot):
-    await asyncio.sleep(5)  # تأخير مبدئي
     while True:
-        service = random.choice(services)
         name = random.choice(names)
+        service = random.choice(services)
         otp = generate_otp()
         message = f"""🔐 OTP Alert!
 👤 Name: {name}
@@ -108,12 +93,12 @@ async def send_random_message(bot: Bot):
 🔢 OTP: {otp}"""
         try:
             await bot.send_message(chat_id=CHANNEL_ID, text=message)
-            print("✅ Sent:", message)
+            print("Sent:", message)
         except Exception as e:
-            print("❌ Error sending message:", e)
-        await asyncio.sleep(random.randint(300, 900))
+            print("Error:", e)
+        await asyncio.sleep(random.randint(300, 900))  # كل 5 إلى 15 دقيقة
 
-# Flask لأجل UptimeRobot
+# Flask لتشغيل البوت 24/7
 app = Flask(__name__)
 
 @app.route('/')
@@ -124,19 +109,17 @@ def run_flask():
     app.run(host="0.0.0.0", port=10000)
 
 # تشغيل البوت
-async def run_bot():
-    tg_app = ApplicationBuilder().token(TOKEN).build()
-    tg_app.add_handler(CommandHandler("start", start))
-    tg_app.add_handler(CommandHandler("plan", plan))
-    tg_app.add_handler(CommandHandler("redeem", redeem))
-    asyncio.create_task(send_random_message(tg_app.bot))
-    await tg_app.run_polling()
+async def main():
+    threading.Thread(target=run_flask).start()
 
-def start_bot_thread():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(run_bot())
+    app_tg = ApplicationBuilder().token(TOKEN).build()
+    app_tg.add_handler(CommandHandler("start", start))
+    app_tg.add_handler(CommandHandler("plan", plan))
+    app_tg.add_handler(CommandHandler("redeem", redeem))
 
-if __name__ == "__main__":
-    threading.Thread(target=start_bot_thread).start()
-    run_flask()
+    asyncio.create_task(send_random_message(app_tg.bot))
+    print("Bot is running...")
+    await app_tg.run_polling()
+
+if __name__ == '__main__':
+    asyncio.run(main())
