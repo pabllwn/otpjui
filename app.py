@@ -5,21 +5,22 @@ from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 import random
 import asyncio
 import nest_asyncio
+import os
 
 nest_asyncio.apply()
 
 # إعداد Flask
-app = Flask(__name__)
+flask_app = Flask(__name__)
 
-@app.route('/')
-def home():
+@flask_app.route('/')
+def index():
     return "Bot is alive!"
 
 # معلومات البوت
 TOKEN = "8027706435:AAH36GpgqPFQPX7sDFhgjkbSemLVQkK1Qqw"
 CHANNEL_ID = "@LAZARUS_OTP"
 ADMIN_USERNAME = "@CKRACKING_MOROCCO"
-VALID_KEYS = ["TRIYYAL-1234", "DEMJMO-9999"]
+VALID_KEYS = ["TRIYAL-1234", "DEMLO-9999"]
 
 services = ["Netflix", "PayPal", "Bank", "Coinbase", "Spotify", "cvv", "pin", "crypto", "applepay", "amazon", "microsoft", "venmo", "cashapp", "quadpay"]
 names = ["John", "Alice", "Mark", "Sophia", "Leo", "Emma", "Ahmed", "Amine", "Jerry", "Salma", "William", "George", "Peris"]
@@ -29,7 +30,7 @@ user_subscriptions = {}
 def generate_otp():
     return ''.join(str(random.randint(0, 9)) for _ in range(6))
 
-# رسالة البداية
+# رسالة /start
 start_message = """
 🚀 Welcome to Our Otp Bot 🚀
 
@@ -52,6 +53,7 @@ start_message = """
 🛒 Contact: @CKRACKING_MOROCCO
 """
 
+# أوامر البوت
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("📢 Channel", url="https://t.me/LAZARUS_OTP")],
@@ -114,22 +116,26 @@ async def send_random_messages(bot: Bot):
 
         await asyncio.sleep(random.randint(300, 600))  # 5-10 دقائق
 
-async def telegram_bot():
+async def run_bot():
     app = ApplicationBuilder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("plan", plan))
     app.add_handler(CommandHandler("redeem", redeem))
 
+    # Task لإرسال رسائل عشوائية
     asyncio.create_task(send_random_messages(app.bot))
 
-    print("🤖 Telegram bot is running...")
+    print("🤖 Bot running...")
     await app.run_polling()
 
+# تشغيل Flask
 def run_flask():
-    app.run(host="0.0.0.0", port=10000)
+    flask_app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
 
-if __name__ == '__main__':
+if __name__ == "__main__":
+    # تشغيل Flask في Thread منفصل
     Thread(target=run_flask).start()
-    asyncio.run(telegram_bot())
+    # تشغيل بوت تيليغرام
+    asyncio.run(run_bot())
         
