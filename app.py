@@ -9,7 +9,7 @@ import threading
 nest_asyncio.apply()
 
 # بيانات البوت
-TOKEN = "8027706435:AAG9y4UGSl9Ha4pdqc7ZmLEK6ETTKxMsD7A"
+TOKEN = "8027706435:AAF9Wdhshc3PLs7Vc5sN1njmeB4M9aIEVX8"
 CHANNEL_ID = "@LAZARUS_OTP"
 ADMIN_USERNAME = "@CKRACKING_MOROCCO"
 VALID_KEYS = ["EXA7123", "VIPKEY000"]  # ضيف مفاتيح الاشتراك هنا
