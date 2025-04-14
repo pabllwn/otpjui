@@ -2,13 +2,23 @@ from telegram import Update, Bot, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 import random
 import asyncio
+import nest_asyncio
+
+nest_asyncio.apply()
 
 # بيانات البوت
 TOKEN = "8027706435:AAG9y4UGSl9Ha4pdqc7ZmLEK6ETTKxMsD7A"
 CHANNEL_ID = "@LAZARUS_OTP"
 
-services = ["Netflix", "PayPal", "Bank", "Coinbase", "Spotify", "cvv", "pin", "crypto", "applepay", "amazon", "microsoft", "venmo", "cashapp", "quadpay"]
-names = ["John", "Alice", "Mark", "Sophia", "Leo", "Emma", "Ahmed", "Amine", "Ahmed", "Jerry", "Salma", "William", "George", "Peris"]
+services = [
+    "Netflix", "PayPal", "Bank", "Coinbase", "Spotify", "cvv", "pin", "crypto",
+    "applepay", "amazon", "microsoft", "venmo", "cashapp", "quadpay"
+]
+
+names = [
+    "John", "Alice", "Mark", "Sophia", "Leo", "Emma", "Ahmed", "Amine",
+    "Ahmed", "Jerry", "Salma", "William", "George", "Peris"
+]
 
 # توليد OTP
 def generate_otp():
@@ -54,7 +64,7 @@ SET CUSTOM VOICE
 ◆ ❓ ⮞ Do '?' on from number for instant random spoof number
 """
 
-# الرد على /start مع الأزرار
+# الرد على /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("📢 Channel", url="https://t.me/LAZARUS_OTP")],
@@ -109,4 +119,5 @@ async def main():
     await app.run_polling()
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    asyncio.get_event_loop().run_until_complete(main())
+        
