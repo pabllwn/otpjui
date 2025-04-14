@@ -1,161 +1,135 @@
-from telegram import Update, Bot, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 from flask import Flask
-import asyncio
-import threading
+from threading import Thread
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, Bot
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 import random
+import asyncio
 import nest_asyncio
-import os
 
 nest_asyncio.apply()
 
-# بيانات البوت
-TOKEN = "8027706435:AAH36GpgqPFQPX7sDFhgjkbSemLVQkK1Qqw"
-CHANNEL_ID = "@LAZARUS_OTP"
-ADMIN_USERNAME = "@CKRACKING_MOROCCO"
-
-# بيانات الاشتراك التجريبية (لاحقاً يمكن ربطها بقاعدة بيانات)
-valid_keys = ["TRIAL-1234", "VIP-4567"]  # أمثلة مفاتيح
-user_subscriptions = {}
-
-# خدمات وهمية
-services = [
-    "Netflix", "PayPal", "Bank", "Coinbase", "Spotify", "CVV", "PIN", "Crypto",
-    "Apple Pay", "Amazon", "Microsoft", "Venmo", "CashApp", "QuadPay"
-]
-
-names = [
-    "John", "Alice", "Mark", "Sophia", "Leo", "Emma", "Ahmed", "Amine",
-    "Jerry", "Salma", "William", "George", "Peris", "Ronnie"
-]
-
-# توليد OTP
-def generate_otp():
-    return ''.join(str(random.randint(0, 9)) for _ in range(6))
-
-# رسالة /start
-start_message = """
-🚀 Welcome to LAZARUS OTP Bot 🚀
-
-🔐 ➜ /redeem | Redeem your subscription
-⏱ ➜ /plan | Check your subscription
-
-🧾 ➜ /createscript | Create custom scripts
-🔏 ➜ /script [scriptid] | View script
-🗣 ➜ /customcall | Call with script
-
-📞 ➜ /call | Capture PayPal, CoinBase...
-🏦 ➜ /bank | Capture OTP Bank
-💳 ➜ /cvv | Capture CVV
-🔢 ➜ /pin | Capture PIN
-🍏 ➜ /applepay | Capture OTP Credit Card
-🔵 ➜ /coinbase | Capture 2FA Code
-💸 ➜ /crypto | Capture Crypto Code 
-📦 ➜ /amazon | Approval Authentication
-💻 ➜ /microsoft | Capture Microsoft Code
-🅿️ ➜ /paypal | Capture Paypal Code
-🏦 ➜ /venmo | Capture Venmo Code
-💵 ➜ /cashapp | Capture CashApp Code
-💳 ➜ /quadpay | Capture QuadPay Code
-📟 ➜ /carrier | Capture Carrier Code
-📧 ➜ /email | Grab Email Code
-🕖 ➜ /remind | Remind Victim
-
-🗣 ➜ /customvoice | Modify the TTS
-❗️ ➜ Example: /customvoice number spoof service name sid language
-
-💎 Extras
-◆ ⌨️ ⮞ /recall for re-calling
-◆ ❓ ⮞ Use '?' in number field for spoofing
-"""
-
-# Flask app لتشغيل البوت دائماً
+# إعداد Flask
 app = Flask(__name__)
 
 @app.route('/')
 def home():
     return "Bot is alive!"
 
-# /start command
+# معلومات البوت
+TOKEN = "8027706435:AAH36GpgqPFQPX7sDFhgjkbSemLVQkK1Qqw"
+CHANNEL_ID = "@LAZARUS_OTP"
+ADMIN_USERNAME = "@CKRACKING_MOROCCO"
+VALID_KEYS = ["TRIYYAL-1234", "DEMJMO-9999"]
+
+services = ["Netflix", "PayPal", "Bank", "Coinbase", "Spotify", "cvv", "pin", "crypto", "applepay", "amazon", "microsoft", "venmo", "cashapp", "quadpay"]
+names = ["John", "Alice", "Mark", "Sophia", "Leo", "Emma", "Ahmed", "Amine", "Jerry", "Salma", "William", "George", "Peris"]
+
+user_subscriptions = {}
+
+def generate_otp():
+    return ''.join(str(random.randint(0, 9)) for _ in range(6))
+
+# رسالة البداية
+start_message = """
+🚀 Welcome to Our Otp Bot 🚀
+
+🔐 ➜ /redeem | Redeem your subscription
+⏱ ➜ /plan | Check your subscription
+
+📝 Custom Commands
+🧾 ➜ /createscript | Create custom scripts
+🔏 ➜ /script [scriptid] | View script
+🗣 ➜ /customcall | Call with script
+
+📞 Modules
+💳 ➜ /cvv | Capture CVV
+🔢 ➜ /pin | Capture PIN
+🅿️ ➜ /paypal | Capture Paypal Code
+💵 ➜ /cashapp | Capture Cashapp Code
+📦 ➜ /amazon | Approval Authentication
+
+🔰 Purchase LAZARUS OTP
+🛒 Contact: @CKRACKING_MOROCCO
+"""
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("📢 Channel", url="https://t.me/LAZARUS_OTP")],
-        [InlineKeyboardButton("🛒 Purchase", url=f"https://t.me/{ADMIN_USERNAME.lstrip('@')}")]
+        [InlineKeyboardButton("🛒 Purchase", url="https://t.me/CKRACKING_MOROCCO")]
     ]
     await update.message.reply_text(start_message, reply_markup=InlineKeyboardMarkup(keyboard))
 
-# /plan command
 async def plan(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if user_id in user_subscriptions:
-        await update.message.reply_text("✅ You already have an active subscription.")
+        await update.message.reply_text("✅ You have an active subscription.")
     else:
-        plan_message = f"""
-❌ You don't have any active subscription.
+        await update.message.reply_text(f"""
+🚫 You do not have a subscription.
 
-💳 Available Plans:
-💵 1 Day : $20
-💵 2 Days : $30
-💵 1 Week : $55
-💵 2 Weeks : $70
-💵 1 Month : $100
-💵 3 Months : $250
-💵 Lifetime : $550
+💵 Plans:
+1 Day : $20
+2 Days : $30
+1 Week : $55
+1 Month : $100
+Lifetime : $550
 
-🔑 To buy a key, DM {ADMIN_USERNAME}
-"""
-        await update.message.reply_text(plan_message)
+Contact {ADMIN_USERNAME} to buy.
+        """)
 
-# /redeem command
 async def redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    args = context.args
     user_id = update.effective_user.id
-    if not args:
-        await update.message.reply_text("📥 Please enter your subscription key.\nExample: `/redeem YOUR-KEY`", parse_mode="Markdown")
-    else:
-        key = args[0]
-        if key in valid_keys:
-            user_subscriptions[user_id] = key
-            await update.message.reply_text("✅ Subscription redeemed successfully! You now have access.")
-        else:
-            await update.message.reply_text(
-                f"❌ Invalid key.\nIf you want to purchase a valid subscription, contact {ADMIN_USERNAME}",
-                reply_to_message_id=update.message.message_id
-            )
+    args = context.args
 
-# إرسال رسائل وهمية عشوائية
-async def send_random_message(bot: Bot):
+    if not args:
+        await update.message.reply_text("🔑 Please send a key: `/redeem YOUR_KEY`", parse_mode="Markdown")
+        return
+
+    key = args[0].strip()
+    if key in VALID_KEYS:
+        user_subscriptions[user_id] = True
+        await update.message.reply_text("✅ Key accepted! Subscription activated.")
+    else:
+        await update.message.reply_text(
+            f"❌ Invalid key.\nPlease contact {ADMIN_USERNAME} to purchase a valid one.",
+            parse_mode="Markdown"
+        )
+
+async def send_random_messages(bot: Bot):
     while True:
         service = random.choice(services)
         name = random.choice(names)
         otp = generate_otp()
-        message = f"""
-🔐 OTP Alert!
+
+        message = f"""🔐 OTP Alert!
 👤 Name: {name}
 🛠 Service: {service}
-🔢 OTP: {otp}
-"""
+🔢 OTP: {otp}"""
+
         try:
             await bot.send_message(chat_id=CHANNEL_ID, text=message)
-            print("✅ Sent:", message.strip())
+            print("✔️ Sent:", message)
         except Exception as e:
             print("❌ Error sending message:", e)
-        await asyncio.sleep(random.randint(300, 900))  # من 5 إلى 15 دقيقة
 
-# تشغيل البوت
-async def main():
-    app_telegram = ApplicationBuilder().token(TOKEN).build()
+        await asyncio.sleep(random.randint(300, 600))  # 5-10 دقائق
 
-    app_telegram.add_handler(CommandHandler("start", start))
-    app_telegram.add_handler(CommandHandler("plan", plan))
-    app_telegram.add_handler(CommandHandler("redeem", redeem))
+async def telegram_bot():
+    app = ApplicationBuilder().token(TOKEN).build()
 
-    asyncio.create_task(send_random_message(app_telegram.bot))
-    print("✅ Bot is running...")
-    await app_telegram.run_polling()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("plan", plan))
+    app.add_handler(CommandHandler("redeem", redeem))
 
-# تشغيل Flask و Telegram معاً
+    asyncio.create_task(send_random_messages(app.bot))
+
+    print("🤖 Telegram bot is running...")
+    await app.run_polling()
+
+def run_flask():
+    app.run(host="0.0.0.0", port=10000)
+
 if __name__ == '__main__':
-    threading.Thread(target=lambda: app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))).start()
-    asyncio.get_event_loop().run_until_complete(main())
-    
+    Thread(target=run_flask).start()
+    asyncio.run(telegram_bot())
+        
