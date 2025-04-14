@@ -8,20 +8,18 @@ import threading
 
 nest_asyncio.apply()
 
-# بيانات البوت
+# إعدادات البوت
 TOKEN = "8027706435:AAF9Wdhshc3PLs7Vc5sN1njmeB4M9aIEVX8"
 CHANNEL_ID = "@LAZARUS_OTP"
 ADMIN_USERNAME = "@CKRACKING_MOROCCO"
-VALID_KEYS = ["EXA7123", "VIPKEY000"]  # ضيف مفاتيح الاشتراك هنا
+VALID_KEYS = ["EXA7123", "VIPKEY000"]
 
 services = ["Netflix", "PayPal", "Bank", "Coinbase", "Spotify", "cvv", "pin", "crypto", "applepay", "amazon", "microsoft", "venmo", "cashapp", "quadpay"]
 names = ["John", "Alice", "Mark", "Sophia", "Leo", "Emma", "Ahmed", "Amine", "Ahmed", "Jerry", "Salma", "William", "George", "Peris"]
 
-# توليد OTP
 def generate_otp():
     return ''.join([str(random.randint(0, 9)) for _ in range(6)])
 
-# رسالة /start
 start_message = """
 🚀 Welcome to Our Otp Bot 🚀
 
@@ -61,7 +59,7 @@ SET CUSTOM VOICE
 ◆ ❓ ⮞ Do '?' on from number for instant random spoof number
 """
 
-# الرد على /start
+# Handlers
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("📢 Channel", url="https://t.me/LAZARUS_OTP")],
@@ -70,7 +68,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(start_message, reply_markup=reply_markup)
 
-# الرد على /plan
 async def plan(update: Update, context: ContextTypes.DEFAULT_TYPE):
     plan_message = f"""
 ❌ You don't have any active subscription.
@@ -88,7 +85,6 @@ async def plan(update: Update, context: ContextTypes.DEFAULT_TYPE):
 """
     await update.message.reply_text(plan_message)
 
-# الرد على /redeem
 async def redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
     args = context.args
     if not args:
@@ -100,8 +96,8 @@ async def redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await update.message.reply_text(f"❌ Invalid Key!\nPlease contact {ADMIN_USERNAME} for a valid one.", parse_mode="Markdown")
 
-# إرسال رسائل عشوائية إلى القناة
 async def send_random_message(bot: Bot):
+    await asyncio.sleep(5)  # تأخير مبدئي
     while True:
         service = random.choice(services)
         name = random.choice(names)
@@ -112,12 +108,12 @@ async def send_random_message(bot: Bot):
 🔢 OTP: {otp}"""
         try:
             await bot.send_message(chat_id=CHANNEL_ID, text=message)
-            print("Sent:", message)
+            print("✅ Sent:", message)
         except Exception as e:
-            print("Error:", e)
+            print("❌ Error sending message:", e)
         await asyncio.sleep(random.randint(300, 900))
 
-# Flask ل UptimeRobot
+# Flask لأجل UptimeRobot
 app = Flask(__name__)
 
 @app.route('/')
@@ -125,23 +121,22 @@ def home():
     return "🤖 Bot is running 24/7!"
 
 def run_flask():
-    app.run(host='0.0.0.0', port=8080)
+    app.run(host="0.0.0.0", port=10000)
 
 # تشغيل البوت
-async def main():
-    flask_thread = threading.Thread(target=run_flask)
-    flask_thread.start()
+async def run_bot():
+    tg_app = ApplicationBuilder().token(TOKEN).build()
+    tg_app.add_handler(CommandHandler("start", start))
+    tg_app.add_handler(CommandHandler("plan", plan))
+    tg_app.add_handler(CommandHandler("redeem", redeem))
+    asyncio.create_task(send_random_message(tg_app.bot))
+    await tg_app.run_polling()
 
-    app_tg = ApplicationBuilder().token(TOKEN).build()
+def start_bot_thread():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(run_bot())
 
-    app_tg.add_handler(CommandHandler("start", start))
-    app_tg.add_handler(CommandHandler("plan", plan))
-    app_tg.add_handler(CommandHandler("redeem", redeem))
-
-    asyncio.create_task(send_random_message(app_tg.bot))
-
-    print("Bot is running...")
-    await app_tg.run_polling()
-
-if __name__ == '__main__':
-    asyncio.get_event_loop().run_until_complete(main())
+if __name__ == "__main__":
+    threading.Thread(target=start_bot_thread).start()
+    run_flask()
