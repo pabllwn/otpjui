@@ -1,14 +1,13 @@
-from fastapi import FastAPI
-from telegram import Update, Bot, InlineKeyboardButton, InlineKeyboardMarkup
+from fastapi import FastAPI, Request
+from telegram import Update, Bot
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 import asyncio
 import random
 import nest_asyncio
-
-nest_asyncio.apply()
+import os
 
 # إعدادات البوت
-TOKEN = "8027706435:AAEzWtCBhIZPSo66BsC2CALd9X9F5LUVLWo"
+TOKEN = os.getenv("BOT_TOKEN", "8027706435:AAEzWtCBhIZPSo66BsC2CALd9X9F5LUVLWo")
 CHANNEL_ID = "@LAZARUS_OTP"
 ADMIN_USERNAME = "@CKRACKING_MOROCCO"
 VALID_KEYS = ["TRIYAL-1234", "DEMLO-9999"]
@@ -25,15 +24,39 @@ names = [
 
 user_subscriptions = {}
 
-# FastAPI app
+# إعداد FastAPI
 app = FastAPI()
+
+# إعداد Webhook للربط مع Telegram
+WEBHOOK_URL = "https://bot-2-splv.onrender.com/webhook"  # رابط Render الخاص بك
+
+nest_asyncio.apply()
+
+# إعداد تطبيق البوت
+bot_app = ApplicationBuilder().token(TOKEN).build()
+
+@app.on_event("startup")
+async def on_startup():
+    # إضافة معالجات الأوامر
+    bot_app.add_handler(CommandHandler("start", start))
+    bot_app.add_handler(CommandHandler("plan", plan))
+    bot_app.add_handler(CommandHandler("redeem", redeem))
+    
+    # تفعيل Webhook للبوت
+    await bot_app.initialize()
+    await bot_app.bot.set_webhook(WEBHOOK_URL)
+    print("✅ Webhook set successfully.")
 
 @app.get("/")
 async def root():
     return {"status": "Bot is running!"}
 
-# Telegram bot application
-app_bot = ApplicationBuilder().token(TOKEN).build()
+@app.post("/webhook")
+async def webhook(req: Request):
+    data = await req.json()
+    update = Update.de_json(data, bot_app.bot)
+    await bot_app.process_update(update)
+    return {"ok": True}
 
 # توليد OTP
 def generate_otp():
@@ -137,10 +160,4 @@ async def send_random_message(bot: Bot):
 # بداية التطبيق
 @app.on_event("startup")
 async def startup_event():
-    app_bot.add_handler(CommandHandler("start", start))
-    app_bot.add_handler(CommandHandler("plan", plan))
-    app_bot.add_handler(CommandHandler("redeem", redeem))
-
-    await app_bot.initialize()  # هذا هو التعديل المهم
-    asyncio.create_task(app_bot.start())  # لا تستخدم run_polling بدون initialize
-    asyncio.create_task(send_random_message(app_bot.bot))
+    asyncio.create_task(send_random_message(bot_app.bot))
