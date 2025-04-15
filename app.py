@@ -5,6 +5,7 @@ import random
 import asyncio
 import nest_asyncio
 from threading import Thread
+import os  # ضروري باش نستعمل متغير PORT
 
 nest_asyncio.apply()
 
@@ -145,9 +146,10 @@ async def main():
     print("🤖 Bot is running...")
     await app.run_polling()
 
-# تشغيل Flask والسيرفر
+# تشغيل Flask والسيرفر (بمنفذ متوافق مع Render)
 def run_flask():
-    flask_app.run(host="0.0.0.0", port=10000)
+    port = int(os.environ.get("PORT", 5000))  # استخدام المنفذ من البيئة
+    flask_app.run(host="0.0.0.0", port=port)
 
 if __name__ == '__main__':
     Thread(target=run_flask).start()
