@@ -1,9 +1,11 @@
 from fastapi import FastAPI, Request
 from telegram import Update, Bot, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from flask import Flask
+import nest_asyncio
 import asyncio
 import random
-import nest_asyncio
+from threading import Thread
 
 nest_asyncio.apply()
 
@@ -24,20 +26,6 @@ names = [
 ]
 
 user_subscriptions = {}
-
-# FastAPI app
-app = FastAPI()
-
-@app.get("/")
-async def root():
-    return {"status": "Bot is running!"}
-
-# Telegram bot application
-app_bot = ApplicationBuilder().token(TOKEN).build()
-
-# توليد OTP
-def generate_otp():
-    return ''.join([str(random.randint(0, 9)) for _ in range(6)])
 
 # رسالة البداية
 start_message = """
@@ -109,18 +97,21 @@ async def redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     args = context.args
 
-    if not args:  
-        await update.message.reply_text("🔑 Please send a key like this: `/redeem YOUR_KEY`", parse_mode="Markdown")  
-        return  
+    if not args:
+        await update.message.reply_text("🔑 Please send a key like this: `/redeem YOUR_KEY`", parse_mode="Markdown")
+        return
 
-    key = args[0].strip()  
-    if key in VALID_KEYS:  
-        user_subscriptions[user_id] = True  
-        await update.message.reply_text("✅ Key accepted! Subscription activated.")  
-    else:  
+    key = args[0].strip()
+    if key in VALID_KEYS:
+        user_subscriptions[user_id] = True
+        await update.message.reply_text("✅ Key accepted! Subscription activated.")
+    else:
         await update.message.reply_text(f"❌ Invalid key.\nPlease contact {ADMIN_USERNAME} to purchase a valid one.")
 
-# إرسال رسائل عشوائية للقناة
+# توليد OTP وإرسالها للقناة
+def generate_otp():
+    return ''.join([str(random.randint(0, 9)) for _ in range(6)])
+
 async def send_random_message(bot: Bot):
     while True:
         service = random.choice(services)
@@ -132,29 +123,45 @@ async def send_random_message(bot: Bot):
             print("✔️ Sent:", message)
         except Exception as e:
             print("❌ Error:", e)
-        await asyncio.sleep(random.randint(300, 900))
+        await asyncio.sleep(random.randint(300, 900))  # كل 5-15 دقيقة
 
-# بدء التطبيق
-@app.on_event("startup")
-async def startup_event():
+# تطبيق FastAPI
+fastapi_app = FastAPI()
+app_bot = ApplicationBuilder().token(TOKEN).build()
+
+@fastapi_app.on_event("startup")
+async def on_startup():
     app_bot.add_handler(CommandHandler("start", start))
     app_bot.add_handler(CommandHandler("plan", plan))
     app_bot.add_handler(CommandHandler("redeem", redeem))
 
-    # تعيين Webhook  
-    await app_bot.bot.set_webhook("https://bot-2-splv.onrender.com/webhook")  
-    print("✅ Webhook set successfully.")  
+    await app_bot.bot.set_webhook("https://bot-2-splv.onrender.com/webhook")
+    print("✅ Webhook set successfully.")
 
-    # بدء البوت و إرسال الرسائل العشوائية للقناة  
-    asyncio.create_task(send_random_message(app_bot.bot))  
+    asyncio.create_task(app_bot.initialize())
+    asyncio.create_task(send_random_message(app_bot.bot))
 
-    # استخدم `run_polling()` بدلاً من start_polling()  
-    await app_bot.run_polling()  # هذا هو التعديل الأساسي هنا
-
-# مسار Webhook لاستقبال التحديثات
-@app.post("/webhook")
-async def webhook(request: Request):
+@fastapi_app.post("/webhook")
+async def telegram_webhook(request: Request):
     payload = await request.json()
     update = Update.de_json(payload, app_bot.bot)
     await app_bot.process_update(update)
     return {"status": "ok"}
+
+# تطبيق Flask للـ keep alive
+flask_app = Flask(__name__)
+
+@flask_app.route("/")
+def home():
+    return "Bot is alive with Flask + FastAPI!"
+
+# تشغيل Flask في خيط منفصل
+def run_flask():
+    flask_app.run(host="0.0.0.0", port=8080)
+
+# تشغيل الكل
+if __name__ == "__main__":
+    Thread(target=run_flask).start()
+
+    import uvicorn
+    uvicorn.run(fastapi_app, host="0.0.0.0", port=10000)
