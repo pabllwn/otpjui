@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from telegram import Update, Bot, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 import asyncio
@@ -31,6 +31,11 @@ app = FastAPI()
 @app.get("/")
 async def root():
     return {"status": "Bot is running!"}
+
+# Health Check Endpoint for UptimeRobot
+@app.get("/health")
+async def health_check():
+    return {"status": "Bot is alive"}
 
 # Telegram bot application
 app_bot = ApplicationBuilder().token(TOKEN).build()
@@ -134,27 +139,13 @@ async def send_random_message(bot: Bot):
             print("❌ Error:", e)
         await asyncio.sleep(random.randint(300, 900))
 
-# بدء التطبيق
+# بداية التطبيق
 @app.on_event("startup")
 async def startup_event():
     app_bot.add_handler(CommandHandler("start", start))
     app_bot.add_handler(CommandHandler("plan", plan))
     app_bot.add_handler(CommandHandler("redeem", redeem))
 
-    # تعيين Webhook
-    await app_bot.bot.set_webhook("https://bot-2-splv.onrender.com/webhook")
-    print("✅ Webhook set successfully.")
-
-    # بدء البوت و إرسال الرسائل العشوائية للقناة
+    await app_bot.initialize()  # هذا هو التعديل المهم
+    asyncio.create_task(app_bot.start())  # لا تستخدم run_polling بدون initialize
     asyncio.create_task(send_random_message(app_bot.bot))
-
-    # استخدم `run_polling()` بدلاً من start_polling()
-    await app_bot.run_polling()  # هذا هو التعديل الأساسي هنا
-
-# مسار Webhook لاستقبال التحديثات
-@app.post("/webhook")
-async def webhook(request: Request):
-    payload = await request.json()
-    update = Update.de_json(payload, app_bot.bot)
-    await app_bot.process_update(update)
-    return {"status": "ok"}
