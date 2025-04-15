@@ -1,22 +1,32 @@
 from fastapi import FastAPI, Request
 from telegram import Update, Bot, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
-import asyncio, random, nest_asyncio
+import asyncio
+import random
+import nest_asyncio
 
 nest_asyncio.apply()
 
+# إعدادات البوت
 TOKEN = "8027706435:AAEzWtCBhIZPSo66BsC2CALd9X9F5LUVLWo"
 CHANNEL_ID = "@LAZARUS_OTP"
 ADMIN_USERNAME = "@CKRACKING_MOROCCO"
 VALID_KEYS = ["TRIYAL-1234", "DEMLO-9999"]
-WEBHOOK_URL = "https://bot-2-splv.onrender.com/webhook"
+WEBHOOK_URL = "https://bot-2-splv.onrender.com/webhook"  # رابط Webhook الخاص بك
 
-services = ["Netflix", "PayPal", "Bank", "Coinbase", "Spotify", "Cvv", "Pin", "Crypto",
-            "Apple Pay", "Amazon", "Microsoft", "Venmo", "Cashapp", "Quadpay", "Bank Of America"]
-names = ["John", "Alice", "Mark", "Sophia", "Leo", "Emma", "Ahmed", "Amine",
-         "Ahmed", "Jerry", "Salma", "William", "George", "Periz", "Nouh", "John", "Thomas", "Eric", "Mike"]
+# قائمة الخدمات وأسماء وهمية
+services = [
+    "Netflix", "PayPal", "Bank", "Coinbase", "Spotify", "Cvv", "Pin", "Crypto",
+    "Apple Pay", "Amazon", "Microsoft", "Venmo", "Cashapp", "Quadpay", "Bank Of America"
+]
+names = [
+    "John", "Alice", "Mark", "Sophia", "Leo", "Emma", "Ahmed", "Amine",
+    "Ahmed", "Jerry", "Salma", "William", "George", "Periz", "Nouh", "John", "Thomas", "Eric", "Mike"
+]
+
 user_subscriptions = {}
 
+# إنشاء FastAPI app
 app = FastAPI()
 
 @app.get("/")
@@ -27,18 +37,21 @@ async def root():
 async def health_check():
     return {"status": "Bot is alive"}
 
+# إنشاء التطبيق من Telegram
 app_bot = ApplicationBuilder().token(TOKEN).build()
 
+# توليد OTP عشوائي
 def generate_otp():
     return ''.join([str(random.randint(0, 9)) for _ in range(6)])
 
+# رسالة البدء
 start_message = """
 🚀 Welcome to Our Otp Bot 🚀
 
 🔐 ➜ /redeem | Redeem your subscription  
 ⏱ ➜ /plan | Check your subscription  
 
-📝 Custom Commands  
+📝  Custom Commands  📝  
 🧾 ➜ /createscript | Create custom scripts  
 🔏 ➜ /script [scriptid] | View script  
 🗣 ➜ /customcall | Call with script  
@@ -65,13 +78,13 @@ SET CUSTOM VOICE
 🗣 ➜ /customvoice | Modify the TTS  
 ❗️ ➜ EXAMPLE: /customvoice number spoof service name sid language  
 
-🔰 Purchase LAZARUS OTP 🔰  
+🔰  Purchase LAZARUS OTP  🔰  
 💎 Extras  
 ⌨️ /recall for re-calling  
 ❓ Use `?` in number to spoof random number  
 """
 
-# Handlers
+# أوامر البوت
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("📢 Channel", url="https://t.me/LAZARUS_OTP")],
@@ -80,85 +93,64 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(start_message, reply_markup=InlineKeyboardMarkup(keyboard))
 
 async def plan(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("💵 Prices: 1D = $20, 1W = $55, 1M = $100\nDM @CKRACKING_MOROCCO to buy.")
+    await update.message.reply_text("""
+LAZARUS-O-T-P CALL ☎️ 🌐  
+With a very good prices:  
+
+💵 1 Day : $20  
+💵 2 Days : $30  
+💵 1 Week : $55  
+💵 2 Weeks : $70  
+💵 1 Month : $100  
+💵 3 Months : $250  
+💵 Lifetime : $550  
+
+DM @CKRACKING_MOROCCO to get your key 🗝  
+🤖 BOT: @lazzaruss_bot  
+✉️ Support: @CKRACKING_MOROCCO
+""")
 
 async def redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     args = context.args
     if not args:
-        await update.message.reply_text("🔑 Use: /redeem YOUR_KEY", parse_mode="Markdown")
+        await update.message.reply_text("🔑 Please send a key like this: `/redeem YOUR_KEY`", parse_mode="Markdown")
         return
     key = args[0].strip()
     if key in VALID_KEYS:
         user_subscriptions[user_id] = True
-        await update.message.reply_text("✅ Key accepted!")
+        await update.message.reply_text("✅ Key accepted! Subscription activated.")
     else:
-        await update.message.reply_text(f"❌ Invalid key.\nContact {ADMIN_USERNAME}")
+        await update.message.reply_text(f"❌ Invalid key.\nPlease contact {ADMIN_USERNAME} to purchase a valid one.")
 
-# أوامر وهمية لإظهار التكامل الكامل
-async def createscript(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🧾 Script created successfully!")
-
-async def view_script(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🔏 This is your script content.")
-
-async def customcall(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🗣 Starting custom call...")
-
-async def customvoice(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🗣 Custom voice set.")
-
-async def remind(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("⏰ Victim will be reminded.")
-
-async def recall(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("♻️ Recalling...")
-
-# Fake Call Commands (ردود وهمية فقط حالياً)
-fake_commands = [
-    "call", "bank", "cvv", "pin", "applepay", "coinbase", "crypto", "amazon",
-    "microsoft", "paypal", "venmo", "cashapp", "quadpay", "carrier", "email"
-]
-
-for cmd in fake_commands:
-    async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE, cmd=cmd):
-        await update.message.reply_text(f"📞 Capturing {cmd.upper()} OTP...")
-    app_bot.add_handler(CommandHandler(cmd, handler))
-
-# إرسال OTP عشوائي كل فترة
+# إرسال رسائل عشوائية للقناة
 async def send_random_message(bot: Bot):
     while True:
         service = random.choice(services)
         name = random.choice(names)
         otp = generate_otp()
-        msg = f"🔐 OTP Alert!\n👤 Name: {name}\n🛠 Service: {service}\n🔢 OTP: {otp}"
+        message = f"🔐 OTP Alert!\n👤 Name: {name}\n🛠 Service: {service}\n🔢 OTP: {otp}"
         try:
-            await bot.send_message(chat_id=CHANNEL_ID, text=msg)
-            print("✔️ Sent:", msg)
+            await bot.send_message(chat_id=CHANNEL_ID, text=message)
+            print("✔️ Sent:", message)
         except Exception as e:
             print("❌ Error:", e)
         await asyncio.sleep(random.randint(300, 900))
 
+# إعداد Webhook عند التشغيل
 @app.on_event("startup")
 async def startup_event():
-    # الأوامر الأساسية
     app_bot.add_handler(CommandHandler("start", start))
     app_bot.add_handler(CommandHandler("plan", plan))
     app_bot.add_handler(CommandHandler("redeem", redeem))
-
-    # الأوامر الإضافية
-    app_bot.add_handler(CommandHandler("createscript", createscript))
-    app_bot.add_handler(CommandHandler("script", view_script))
-    app_bot.add_handler(CommandHandler("customcall", customcall))
-    app_bot.add_handler(CommandHandler("customvoice", customvoice))
-    app_bot.add_handler(CommandHandler("remind", remind))
-    app_bot.add_handler(CommandHandler("recall", recall))
-
+    
     await app_bot.initialize()
-    await app_bot.bot.set_webhook(WEBHOOK_URL)
+    await app_bot.bot.set_webhook("https://bot-2-splv.onrender.com/webhook")
     print("✅ Webhook set.")
+    
     asyncio.create_task(send_random_message(app_bot.bot))
 
+# استقبال Webhook
 @app.post("/webhook")
 async def telegram_webhook(request: Request):
     data = await request.json()
