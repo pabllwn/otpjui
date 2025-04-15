@@ -1,12 +1,21 @@
+from flask import Flask
 from telegram import Update, Bot, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 import random
 import asyncio
 import nest_asyncio
+from threading import Thread
 
 nest_asyncio.apply()
 
-# بيانات البوت
+# Flask App
+flask_app = Flask(__name__)
+
+@flask_app.route('/')
+def home():
+    return "Bot is running!"
+
+# Telegram Bot Config
 TOKEN = "8027706435:AAG9y4UGSl9Ha4pdqc7ZmLEK6ETTKxMsD7A"
 CHANNEL_ID = "@LAZARUS_OTP"
 ADMIN_USERNAME = "@CKRACKING_MOROCCO"
@@ -68,7 +77,7 @@ SET CUSTOM VOICE
 ❓ Use `?` in number to spoof random number
 """
 
-# /start
+# Handlers
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("📢 Channel", url="https://t.me/LAZARUS_OTP")],
@@ -76,7 +85,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     await update.message.reply_text(start_message, reply_markup=InlineKeyboardMarkup(keyboard))
 
-# /plan
 async def plan(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("""
 LAZARUS-O-T-P CALL ☎️ 🌐
@@ -95,7 +103,6 @@ DM @CKRACKING_MOROCCO to get your key 🗝  
 ✉️ Support: @CKRACKING_MOROCCO
 """)
 
-# /redeem
 async def redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     args = context.args
@@ -111,7 +118,7 @@ async def redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text(f"❌ Invalid key.\nPlease contact {ADMIN_USERNAME} to purchase a valid one.")
 
-# إرسال رسائل عشوائية إلى القناة
+# إرسال رسائل عشوائية للقناة
 async def send_random_message(bot: Bot):
     while True:
         service = random.choice(services)
@@ -125,7 +132,7 @@ async def send_random_message(bot: Bot):
             print("❌ Error:", e)
         await asyncio.sleep(random.randint(300, 900))
 
-# التشغيل
+# تشغيل البوت
 async def main():
     app = ApplicationBuilder().token(TOKEN).build()
 
@@ -138,5 +145,10 @@ async def main():
     print("🤖 Bot is running...")
     await app.run_polling()
 
+# تشغيل Flask والسيرفر
+def run_flask():
+    flask_app.run(host="0.0.0.0", port=10000)
+
 if __name__ == '__main__':
+    Thread(target=run_flask).start()
     asyncio.get_event_loop().run_until_complete(main())
