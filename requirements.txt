@@ -1,4 +1,4 @@
-fastapi
-uvicorn
-python-telegram-bot==20.8
-nest_asyncio
+fastapi==0.95.1
+uvicorn==0.22.0
+python-telegram-bot==20.0a3
+nest-asyncio==1.5.6
