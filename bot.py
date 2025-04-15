@@ -1,33 +1,22 @@
 from fastapi import FastAPI, Request
 from telegram import Update, Bot, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
-from flask import Flask
-import nest_asyncio
+from telegram.ext import Application, CommandHandler, ContextTypes
 import asyncio
 import random
-from threading import Thread
 
-nest_asyncio.apply()
-
-# إعدادات البوت
 TOKEN = "8027706435:AAEzWtCBhIZPSo66BsC2CALd9X9F5LUVLWo"
 CHANNEL_ID = "@LAZARUS_OTP"
 ADMIN_USERNAME = "@CKRACKING_MOROCCO"
 VALID_KEYS = ["TRIYAL-1234", "DEMLO-9999"]
 
-# خدمات وهمية وأسماء
-services = [
-    "Netflix", "PayPal", "Bank", "Coinbase", "Spotify", "Cvv", "Pin", "Crypto",
-    "Apple Pay", "Amazon", "Microsoft", "Venmo", "Cashapp", "Quadpay", "Bank Of America"
-]
-names = [
-    "John", "Alice", "Mark", "Sophia", "Leo", "Emma", "Ahmed", "Amine",
-    "Ahmed", "Jerry", "Salma", "William", "George", "Periz", "Nouh", "John", "Thomas", "Eric", "Mike"
-]
+services = ["Netflix", "PayPal", "Bank", "Coinbase", "Spotify", "Cvv", "Pin", "Crypto",
+            "Apple Pay", "Amazon", "Microsoft", "Venmo", "Cashapp", "Quadpay", "Bank Of America"]
+
+names = ["John", "Alice", "Mark", "Sophia", "Leo", "Emma", "Ahmed", "Amine", "Jerry",
+         "Salma", "William", "George", "Periz", "Nouh", "Thomas", "Eric", "Mike"]
 
 user_subscriptions = {}
 
-# رسالة البداية
 start_message = """
 🚀 Welcome to Our Otp Bot 🚀
 
@@ -67,7 +56,17 @@ SET CUSTOM VOICE
 ❓ Use ? in number to spoof random number
 """
 
-# أوامر البوت
+# FastAPI app
+app = FastAPI()
+
+@app.get("/")
+async def root():
+    return {"status": "Bot is running!"}
+
+# Telegram Application
+app_bot = Application.builder().token(TOKEN).build()
+
+# Handlers
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("📢 Channel", url="https://t.me/LAZARUS_OTP")],
@@ -96,9 +95,8 @@ DM @CKRACKING_MOROCCO to get your key 🗝
 async def redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     args = context.args
-
     if not args:
-        await update.message.reply_text("🔑 Please send a key like this: `/redeem YOUR_KEY`", parse_mode="Markdown")
+        await update.message.reply_text("🔑 Please send a key like this: /redeem YOUR_KEY")
         return
 
     key = args[0].strip()
@@ -108,60 +106,31 @@ async def redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text(f"❌ Invalid key.\nPlease contact {ADMIN_USERNAME} to purchase a valid one.")
 
-# توليد OTP وإرسالها للقناة
-def generate_otp():
-    return ''.join([str(random.randint(0, 9)) for _ in range(6)])
-
-async def send_random_message(bot: Bot):
+# Send random messages
+async def send_random_message():
+    bot = Bot(TOKEN)
     while True:
         service = random.choice(services)
         name = random.choice(names)
-        otp = generate_otp()
+        otp = ''.join([str(random.randint(0, 9)) for _ in range(6)])
         message = f"🔐 OTP Alert!\n👤 Name: {name}\n🛠 Service: {service}\n🔢 OTP: {otp}"
         try:
             await bot.send_message(chat_id=CHANNEL_ID, text=message)
-            print("✔️ Sent:", message)
         except Exception as e:
             print("❌ Error:", e)
-        await asyncio.sleep(random.randint(300, 900))  # كل 5-15 دقيقة
+        await asyncio.sleep(random.randint(300, 900))
 
-# تطبيق FastAPI
-fastapi_app = FastAPI()
-app_bot = ApplicationBuilder().token(TOKEN).build()
-
-@fastapi_app.on_event("startup")
+@app.on_event("startup")
 async def on_startup():
     app_bot.add_handler(CommandHandler("start", start))
     app_bot.add_handler(CommandHandler("plan", plan))
     app_bot.add_handler(CommandHandler("redeem", redeem))
-
+    asyncio.create_task(send_random_message())
     await app_bot.bot.set_webhook("https://bot-2-splv.onrender.com/webhook")
-    print("✅ Webhook set successfully.")
 
-    asyncio.create_task(app_bot.initialize())
-    asyncio.create_task(send_random_message(app_bot.bot))
-
-@fastapi_app.post("/webhook")
-async def telegram_webhook(request: Request):
+@app.post("/webhook")
+async def webhook(request: Request):
     payload = await request.json()
     update = Update.de_json(payload, app_bot.bot)
     await app_bot.process_update(update)
     return {"status": "ok"}
-
-# تطبيق Flask للـ keep alive
-flask_app = Flask(__name__)
-
-@flask_app.route("/")
-def home():
-    return "Bot is alive with Flask + FastAPI!"
-
-# تشغيل Flask في خيط منفصل
-def run_flask():
-    flask_app.run(host="0.0.0.0", port=8080)
-
-# تشغيل الكل
-if __name__ == "__main__":
-    Thread(target=run_flask).start()
-
-    import uvicorn
-    uvicorn.run(fastapi_app, host="0.0.0.0", port=10000)
