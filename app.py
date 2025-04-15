@@ -151,6 +151,3 @@ def run_flask():
     port = int(os.environ.get("PORT", 5000))  # استخدام المنفذ من البيئة
     flask_app.run(host="0.0.0.0", port=port)
 
-if __name__ == '__main__':
-    Thread(target=run_flask).start()
-    asyncio.get_event_loop().run_until_complete(main())
