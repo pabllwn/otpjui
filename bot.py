@@ -1,17 +1,14 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from telegram import Update, Bot, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 import asyncio
 import random
 import nest_asyncio
-import logging
 
-# Fix event loop issues on some environments like Jupyter/Render
 nest_asyncio.apply()
 
 # إعدادات البوت
 TOKEN = "8027706435:AAEzWtCBhIZPSo66BsC2CALd9X9F5LUVLWo"
-WEBHOOK_URL = "https://bot-2-splv.onrender.com/webhook"
 CHANNEL_ID = "@LAZARUS_OTP"
 ADMIN_USERNAME = "@CKRACKING_MOROCCO"
 VALID_KEYS = ["TRIYAL-1234", "DEMLO-9999"]
@@ -26,13 +23,17 @@ names = [
     "Ahmed", "Jerry", "Salma", "William", "George", "Periz", "Nouh", "John", "Thomas", "Eric", "Mike"
 ]
 
-# اشتراكات المستخدمين
 user_subscriptions = {}
 
-# إعداد البوت والتطبيق
+# FastAPI app
 app = FastAPI()
-bot_app = Application.builder().token(TOKEN).build()
-bot = Bot(token=TOKEN)
+
+@app.get("/")
+async def root():
+    return {"status": "Bot is running!"}
+
+# Telegram bot application
+app_bot = ApplicationBuilder().token(TOKEN).build()
 
 # توليد OTP
 def generate_otp():
@@ -120,7 +121,7 @@ async def redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"❌ Invalid key.\nPlease contact {ADMIN_USERNAME} to purchase a valid one.")
 
 # إرسال رسائل عشوائية للقناة
-async def send_random_message():
+async def send_random_message(bot: Bot):
     while True:
         service = random.choice(services)
         name = random.choice(names)
@@ -133,30 +134,13 @@ async def send_random_message():
             print("❌ Error:", e)
         await asyncio.sleep(random.randint(300, 900))
 
-# تكامل FastAPI مع Telegram Webhook
+# بداية التطبيق
 @app.on_event("startup")
-async def startup():
-    bot_app.add_handler(CommandHandler("start", start))
-    bot_app.add_handler(CommandHandler("plan", plan))
-    bot_app.add_handler(CommandHandler("redeem", redeem))
+async def startup_event():
+    app_bot.add_handler(CommandHandler("start", start))
+    app_bot.add_handler(CommandHandler("plan", plan))
+    app_bot.add_handler(CommandHandler("redeem", redeem))
 
-    await bot.delete_webhook(drop_pending_updates=True)
-    await bot.set_webhook(WEBHOOK_URL)
-
-    # مهمة إرسال رسائل عشوائية
-    asyncio.create_task(send_random_message())
-
-    # تشغيل تطبيق Telegram (بدون polling)
-    asyncio.create_task(bot_app.initialize())
-    asyncio.create_task(bot_app.start())
-
-@app.post("/webhook")
-async def telegram_webhook(req: Request):
-    data = await req.json()
-    update = Update.de_json(data, bot)
-    await bot_app.process_update(update)
-    return {"ok": True}
-
-@app.get("/")
-async def root():
-    return {"status": "Bot is running with webhook!"}
+    await app_bot.initialize()  # هذا هو التعديل المهم
+    asyncio.create_task(app_bot.start())  # لا تستخدم run_polling بدون initialize
+    asyncio.create_task(send_random_message(app_bot.bot))
