@@ -4,6 +4,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 import random
 import asyncio
 import os
+import threading
 
 # إنشاء تطبيق FastAPI
 app = FastAPI()
@@ -143,12 +144,16 @@ async def main():
 async def home():
     return "Bot is running!"
 
-# تشغيل السيرفر
-def run_flask():
-    port = int(os.environ.get("PORT", 5000))  # استخدام المنفذ من البيئة
-    app.run(host="0.0.0.0", port=port)
+# تشغيل السيرفر باستخدام FastAPI
+def run_fastapi():
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+
+# تشغيل البوت و FastAPI في نفس الوقت
+def run():
+    thread = threading.Thread(target=run_fastapi)
+    thread.start()
+    asyncio.run(main())
 
 if __name__ == '__main__':
-    import threading
-    threading.Thread(target=run_flask).start()
-    asyncio.get_event_loop().run_until_complete(main())
+    run()
