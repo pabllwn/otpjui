@@ -148,8 +148,8 @@ async def startup_event():
     # بدء البوت و إرسال الرسائل العشوائية للقناة
     asyncio.create_task(send_random_message(app_bot.bot))
 
-    # استخدام Long Polling مؤقتًا
-    await app_bot.start_polling()  # بدلًا من Webhook إذا كان لديك مشاكل مع Webhook
+    # استخدم `run_polling()` بدلاً من start_polling()
+    await app_bot.run_polling()  # هذا هو التعديل الأساسي هنا
 
 # مسار Webhook لاستقبال التحديثات
 @app.post("/webhook")
