@@ -9,7 +9,7 @@ import os
 nest_asyncio.apply()
 
 # إعدادات البوت
-TOKEN = "8027706435:AAG9y4UGSl9Ha4pdqc7ZmLEK6ETTKxMsD7A"
+TOKEN = "8027706435:AAEzWtCBhIZPSo66BsC2CALd9X9F5LUVLWo"
 CHANNEL_ID = "@LAZARUS_OTP"
 ADMIN_USERNAME = "@CKRACKING_MOROCCO"
 VALID_KEYS = ["TRIYAL-1234", "DEMLO-9999"]
@@ -32,7 +32,7 @@ app = FastAPI()
 
 @app.get("/")
 async def root():
-    return {"status": "Bot is running!"}
+    return {"status": "Bot is running!", "project_url": "https://bot-2-splv.onrender.com"}
 
 # بوت تيليغرام
 app_bot = ApplicationBuilder().token(TOKEN).build()
@@ -134,15 +134,16 @@ async def send_random_message(bot: Bot):
             print("✔️ Sent:", message)
         except Exception as e:
             print("❌ Error:", e)
-        await asyncio.sleep(random.randint(300, 900))
+        await asyncio.sleep(random.randint(300, 900))  # من 5 إلى 15 دقيقة
 
-# عند بداية السيرفر
+# عند تشغيل السيرفر
 @app.on_event("startup")
 async def startup_event():
     app_bot.add_handler(CommandHandler("start", start))
     app_bot.add_handler(CommandHandler("plan", plan))
     app_bot.add_handler(CommandHandler("redeem", redeem))
 
-    # تشغيل البوت و إرسال الرسائل بشكل متزامن
-    asyncio.create_task(app_bot.run_polling())
+    # تشغيل البوت وإرسال الرسائل بشكل متزامن
+    await app_bot.initialize()
+    asyncio.create_task(app_bot.start())
     asyncio.create_task(send_random_message(app_bot.bot))
