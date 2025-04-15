@@ -1,26 +1,20 @@
-from flask import Flask
-from telegram import Update, Bot, InlineKeyboardButton, InlineKeyboardMarkup
+from fastapi import FastAPI
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, Bot
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 import random
 import asyncio
-import nest_asyncio
-from threading import Thread
-import os  # ضروري باش نستعمل متغير PORT
+import os
 
-nest_asyncio.apply()
+# إنشاء تطبيق FastAPI
+app = FastAPI()
 
-# Flask App
-flask_app = Flask(__name__)
-
-@flask_app.route('/')
-def home():
-    return "Bot is running!"
-
-# Telegram Bot Config
+# إعدادات البوت (تم وضع القيم مباشرة هنا)
 TOKEN = "8027706435:AAG9y4UGSl9Ha4pdqc7ZmLEK6ETTKxMsD7A"
 CHANNEL_ID = "@LAZARUS_OTP"
 ADMIN_USERNAME = "@CKRACKING_MOROCCO"
-VALID_KEYS = ["TRIYAL-1234", "DEMLO-9999"]
+VALID_KEYS = ["TRIYAL-1234", "DEMLO-9999"]  # مفاتيح تفعيل الحساب
+
+user_subscriptions = {}
 
 services = [
     "Netflix", "PayPal", "Bank", "Coinbase", "Spotify", "Cvv", "Pin", "Crypto",
@@ -32,13 +26,11 @@ names = [
     "Ahmed", "Jerry", "Salma", "William", "George", "Periz", "Nouh", "John", "Thomas", "Eric", "Mike"
 ]
 
-user_subscriptions = {}
-
 # توليد OTP
 def generate_otp():
     return ''.join([str(random.randint(0, 9)) for _ in range(6)])
 
-# رسالة /start
+# الرسالة الخاصة بـ /start
 start_message = """
 🚀 Welcome to Our Otp Bot 🚀
 
@@ -146,11 +138,17 @@ async def main():
     print("🤖 Bot is running...")
     await app.run_polling()
 
-# تشغيل Flask والسيرفر (بمنفذ متوافق مع Render)
+# تشغيل FastAPI
+@app.get("/")
+async def home():
+    return "Bot is running!"
+
+# تشغيل السيرفر
 def run_flask():
     port = int(os.environ.get("PORT", 5000))  # استخدام المنفذ من البيئة
-    flask_app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=port)
 
 if __name__ == '__main__':
-    Thread(target=run_flask).start()
+    import threading
+    threading.Thread(target=run_flask).start()
     asyncio.get_event_loop().run_until_complete(main())
