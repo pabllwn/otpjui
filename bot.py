@@ -1,15 +1,17 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from telegram import Update, Bot, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from telegram.ext import Application, CommandHandler, ContextTypes
 import asyncio
 import random
 import nest_asyncio
-import os
+import logging
 
+# Fix event loop issues on some environments like Jupyter/Render
 nest_asyncio.apply()
 
 # إعدادات البوت
 TOKEN = "8027706435:AAEzWtCBhIZPSo66BsC2CALd9X9F5LUVLWo"
+WEBHOOK_URL = "https://bot-2-splv.onrender.com/webhook"
 CHANNEL_ID = "@LAZARUS_OTP"
 ADMIN_USERNAME = "@CKRACKING_MOROCCO"
 VALID_KEYS = ["TRIYAL-1234", "DEMLO-9999"]
@@ -27,15 +29,10 @@ names = [
 # اشتراكات المستخدمين
 user_subscriptions = {}
 
-# FastAPI app
+# إعداد البوت والتطبيق
 app = FastAPI()
-
-@app.get("/")
-async def root():
-    return {"status": "Bot is running!", "project_url": "https://bot-2-splv.onrender.com"}
-
-# بوت تيليغرام
-app_bot = ApplicationBuilder().token(TOKEN).build()
+bot_app = Application.builder().token(TOKEN).build()
+bot = Bot(token=TOKEN)
 
 # توليد OTP
 def generate_otp():
@@ -81,7 +78,7 @@ SET CUSTOM VOICE
 ❓ Use `?` in number to spoof random number  
 """
 
-# الأوامر
+# أوامر البوت
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("📢 Channel", url="https://t.me/LAZARUS_OTP")],
@@ -123,7 +120,7 @@ async def redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"❌ Invalid key.\nPlease contact {ADMIN_USERNAME} to purchase a valid one.")
 
 # إرسال رسائل عشوائية للقناة
-async def send_random_message(bot: Bot):
+async def send_random_message():
     while True:
         service = random.choice(services)
         name = random.choice(names)
@@ -134,16 +131,32 @@ async def send_random_message(bot: Bot):
             print("✔️ Sent:", message)
         except Exception as e:
             print("❌ Error:", e)
-        await asyncio.sleep(random.randint(300, 900))  # من 5 إلى 15 دقيقة
+        await asyncio.sleep(random.randint(300, 900))
 
-# عند تشغيل السيرفر
+# تكامل FastAPI مع Telegram Webhook
 @app.on_event("startup")
-async def startup_event():
-    app_bot.add_handler(CommandHandler("start", start))
-    app_bot.add_handler(CommandHandler("plan", plan))
-    app_bot.add_handler(CommandHandler("redeem", redeem))
+async def startup():
+    bot_app.add_handler(CommandHandler("start", start))
+    bot_app.add_handler(CommandHandler("plan", plan))
+    bot_app.add_handler(CommandHandler("redeem", redeem))
 
-    # تشغيل البوت وإرسال الرسائل بشكل متزامن
-    await app_bot.initialize()
-    asyncio.create_task(app_bot.start())
-    asyncio.create_task(send_random_message(app_bot.bot))
+    await bot.delete_webhook(drop_pending_updates=True)
+    await bot.set_webhook(WEBHOOK_URL)
+
+    # مهمة إرسال رسائل عشوائية
+    asyncio.create_task(send_random_message())
+
+    # تشغيل تطبيق Telegram (بدون polling)
+    asyncio.create_task(bot_app.initialize())
+    asyncio.create_task(bot_app.start())
+
+@app.post("/webhook")
+async def telegram_webhook(req: Request):
+    data = await req.json()
+    update = Update.de_json(data, bot)
+    await bot_app.process_update(update)
+    return {"ok": True}
+
+@app.get("/")
+async def root():
+    return {"status": "Bot is running with webhook!"}
