@@ -1,46 +1,54 @@
 from fastapi import FastAPI
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, Bot, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 import asyncio
 import random
+import nest_asyncio
+import os
 
-# إعداد البوت
-TOKEN = "توكن_البوت_ديالك"
-CHANNEL_ID = "@channel_id"
-ADMIN_USERNAME = "@admin_username"
-VALID_KEYS = ["TRIAL-1234", "DEMO-9999"]
+nest_asyncio.apply()
 
+# إعدادات البوت
+TOKEN = "8027706435:AAG9y4UGSl9Ha4pdqc7ZmLEK6ETTKxMsD7A"
+CHANNEL_ID = "@LAZARUS_OTP"
+ADMIN_USERNAME = "@CKRACKING_MOROCCO"
+VALID_KEYS = ["TRIYAL-1234", "DEMLO-9999"]
+
+# خدمات وهمية وأسماء
 services = [
     "Netflix", "PayPal", "Bank", "Coinbase", "Spotify", "Cvv", "Pin", "Crypto",
     "Apple Pay", "Amazon", "Microsoft", "Venmo", "Cashapp", "Quadpay", "Bank Of America"
 ]
-
 names = [
     "John", "Alice", "Mark", "Sophia", "Leo", "Emma", "Ahmed", "Amine",
-    "Jerry", "Salma", "William", "George", "Periz", "Nouh", "Thomas", "Eric", "Mike"
+    "Ahmed", "Jerry", "Salma", "William", "George", "Periz", "Nouh", "John", "Thomas", "Eric", "Mike"
 ]
 
+# اشتراكات المستخدمين
 user_subscriptions = {}
 
 # FastAPI app
 app = FastAPI()
 
 @app.get("/")
-def home():
-    return {"message": "Bot is running!"}
+async def root():
+    return {"status": "Bot is running!"}
 
-# OTP Generator
+# بوت تيليغرام
+app_bot = ApplicationBuilder().token(TOKEN).build()
+
+# توليد OTP
 def generate_otp():
     return ''.join([str(random.randint(0, 9)) for _ in range(6)])
 
-# رسائل البوت
+# رسالة البداية
 start_message = """
 🚀 Welcome to Our Otp Bot 🚀
 
 🔐 ➜ /redeem | Redeem your subscription  
 ⏱ ➜ /plan | Check your subscription  
 
-📝  Custom Commands  
+📝  Custom Commands  📝  
 🧾 ➜ /createscript | Create custom scripts  
 🔏 ➜ /script [scriptid] | View script  
 🗣 ➜ /customcall | Call with script  
@@ -67,13 +75,13 @@ SET CUSTOM VOICE
 🗣 ➜ /customvoice | Modify the TTS  
 ❗️ ➜ EXAMPLE: /customvoice number spoof service name sid language  
 
-🔰  Purchase LAZARUS OTP  
+🔰  Purchase LAZARUS OTP  🔰  
 💎 Extras  
 ⌨️ /recall for re-calling  
-❓ Use `?` in number to spoof random number
+❓ Use `?` in number to spoof random number  
 """
 
-# أوامر البوت
+# الأوامر
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("📢 Channel", url="https://t.me/LAZARUS_OTP")],
@@ -102,9 +110,11 @@ DM @CKRACKING_MOROCCO to get your key 🗝
 async def redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     args = context.args
+
     if not args:
         await update.message.reply_text("🔑 Please send a key like this: `/redeem YOUR_KEY`", parse_mode="Markdown")
         return
+
     key = args[0].strip()
     if key in VALID_KEYS:
         user_subscriptions[user_id] = True
@@ -112,8 +122,8 @@ async def redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text(f"❌ Invalid key.\nPlease contact {ADMIN_USERNAME} to purchase a valid one.")
 
-# إرسال رسائل عشوائية
-async def send_random_message(bot):
+# إرسال رسائل عشوائية للقناة
+async def send_random_message(bot: Bot):
     while True:
         service = random.choice(services)
         name = random.choice(names)
@@ -121,19 +131,18 @@ async def send_random_message(bot):
         message = f"🔐 OTP Alert!\n👤 Name: {name}\n🛠 Service: {service}\n🔢 OTP: {otp}"
         try:
             await bot.send_message(chat_id=CHANNEL_ID, text=message)
+            print("✔️ Sent:", message)
         except Exception as e:
             print("❌ Error:", e)
-        await asyncio.sleep(random.randint(300, 900))  # كل 5 إلى 15 دقيقة
+        await asyncio.sleep(random.randint(300, 900))
 
-# تشغيل البوت تلقائياً مع FastAPI
+# عند بداية السيرفر
 @app.on_event("startup")
 async def startup_event():
-    from telegram.ext import ApplicationBuilder
-    app_bot = ApplicationBuilder().token(TOKEN).build()
-
     app_bot.add_handler(CommandHandler("start", start))
     app_bot.add_handler(CommandHandler("plan", plan))
     app_bot.add_handler(CommandHandler("redeem", redeem))
 
-    asyncio.create_task(send_random_message(app_bot.bot))
+    # تشغيل البوت و إرسال الرسائل بشكل متزامن
     asyncio.create_task(app_bot.run_polling())
+    asyncio.create_task(send_random_message(app_bot.bot))
