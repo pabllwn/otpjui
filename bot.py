@@ -1,13 +1,15 @@
 from fastapi import FastAPI, Request
-from telegram import Update, Bot
+from telegram import Update, Bot, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 import asyncio
 import random
 import nest_asyncio
-import os
+
+# تطبيق Nest AsyncIO لتجنب تعارض الأحداث في بيئات متعددة مثل FastAPI و Telegram bot
+nest_asyncio.apply()
 
 # إعدادات البوت
-TOKEN = os.getenv("BOT_TOKEN", "8027706435:AAEzWtCBhIZPSo66BsC2CALd9X9F5LUVLWo")
+TOKEN = "8027706435:AAEzWtCBhIZPSo66BsC2CALd9X9F5LUVLWo"
 CHANNEL_ID = "@LAZARUS_OTP"
 ADMIN_USERNAME = "@CKRACKING_MOROCCO"
 VALID_KEYS = ["TRIYAL-1234", "DEMLO-9999"]
@@ -24,39 +26,14 @@ names = [
 
 user_subscriptions = {}
 
-# إعداد FastAPI
+# FastAPI app
 app = FastAPI()
 
-# إعداد Webhook للربط مع Telegram
-WEBHOOK_URL = "https://bot-2-splv.onrender.com/webhook"  # رابط Render الخاص بك
+# تعريف رابط Webhook
+WEBHOOK_URL = "https://bot-2-splv.onrender.com/webhook"
 
-nest_asyncio.apply()
-
-# إعداد تطبيق البوت
-bot_app = ApplicationBuilder().token(TOKEN).build()
-
-@app.on_event("startup")
-async def on_startup():
-    # إضافة معالجات الأوامر
-    bot_app.add_handler(CommandHandler("start", start))
-    bot_app.add_handler(CommandHandler("plan", plan))
-    bot_app.add_handler(CommandHandler("redeem", redeem))
-    
-    # تفعيل Webhook للبوت
-    await bot_app.initialize()
-    await bot_app.bot.set_webhook(WEBHOOK_URL)
-    print("✅ Webhook set successfully.")
-
-@app.get("/")
-async def root():
-    return {"status": "Bot is running!"}
-
-@app.post("/webhook")
-async def webhook(req: Request):
-    data = await req.json()
-    update = Update.de_json(data, bot_app.bot)
-    await bot_app.process_update(update)
-    return {"ok": True}
+# Telegram bot application
+app_bot = ApplicationBuilder().token(TOKEN).build()
 
 # توليد OTP
 def generate_otp():
@@ -157,7 +134,25 @@ async def send_random_message(bot: Bot):
             print("❌ Error:", e)
         await asyncio.sleep(random.randint(300, 900))
 
+# إعداد Webhook
+@app.post("/webhook")
+async def webhook(req: Request):
+    data = await req.json()
+    update = Update.de_json(data, app_bot.bot)
+    await app_bot.process_update(update)
+    return {"ok": True}
+
 # بداية التطبيق
 @app.on_event("startup")
 async def startup_event():
-    asyncio.create_task(send_random_message(bot_app.bot))
+    app_bot.add_handler(CommandHandler("start", start))
+    app_bot.add_handler(CommandHandler("plan", plan))
+    app_bot.add_handler(CommandHandler("redeem", redeem))
+
+    # تفعيل Webhook
+    await app_bot.initialize()
+    await app_bot.bot.set_webhook(WEBHOOK_URL)
+    print("✅ Webhook set successfully.")
+
+    asyncio.create_task(app_bot.start())  # بدء البوت مع Webhook
+    asyncio.create_task(send_random_message(app_bot.bot))  # إرسال الرسائل العشوائية للقناة
