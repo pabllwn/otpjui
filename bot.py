@@ -1,22 +1,33 @@
 from fastapi import FastAPI, Request
 from telegram import Update, Bot, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, ContextTypes
-import asyncio
-import random
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+import asyncio, random, os, nest_asyncio
+
+nest_asyncio.apply()
 
 TOKEN = "8027706435:AAEzWtCBhIZPSo66BsC2CALd9X9F5LUVLWo"
 CHANNEL_ID = "@LAZARUS_OTP"
 ADMIN_USERNAME = "@CKRACKING_MOROCCO"
 VALID_KEYS = ["TRIYAL-1234", "DEMLO-9999"]
 
-services = ["Netflix", "PayPal", "Bank", "Coinbase", "Spotify", "Cvv", "Pin", "Crypto",
-            "Apple Pay", "Amazon", "Microsoft", "Venmo", "Cashapp", "Quadpay", "Bank Of America"]
-
-names = ["John", "Alice", "Mark", "Sophia", "Leo", "Emma", "Ahmed", "Amine", "Jerry",
-         "Salma", "William", "George", "Periz", "Nouh", "Thomas", "Eric", "Mike"]
+services = [
+    "Netflix", "PayPal", "Bank", "Coinbase", "Spotify", "Cvv", "Pin", "Crypto",
+    "Apple Pay", "Amazon", "Microsoft", "Venmo", "Cashapp", "Quadpay", "Bank Of America"
+]
+names = [
+    "John", "Alice", "Mark", "Sophia", "Leo", "Emma", "Ahmed", "Amine",
+    "Ahmed", "Jerry", "Salma", "William", "George", "Periz", "Nouh", "John", "Thomas", "Eric", "Mike"
+]
 
 user_subscriptions = {}
 
+# FastAPI instance
+app = FastAPI()
+
+# Telegram Bot
+app_bot = ApplicationBuilder().token(TOKEN).build()
+
+# Start Message
 start_message = """
 🚀 Welcome to Our Otp Bot 🚀
 
@@ -56,17 +67,11 @@ SET CUSTOM VOICE
 ❓ Use ? in number to spoof random number
 """
 
-# FastAPI app
-app = FastAPI()
+# Generate OTP
+def generate_otp():
+    return ''.join([str(random.randint(0, 9)) for _ in range(6)])
 
-@app.get("/")
-async def root():
-    return {"status": "Bot is running!"}
-
-# Telegram Application
-app_bot = Application.builder().token(TOKEN).build()
-
-# Handlers
+# Commands
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("📢 Channel", url="https://t.me/LAZARUS_OTP")],
@@ -95,6 +100,7 @@ DM @CKRACKING_MOROCCO to get your key 🗝
 async def redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     args = context.args
+
     if not args:
         await update.message.reply_text("🔑 Please send a key like this: /redeem YOUR_KEY")
         return
@@ -106,31 +112,43 @@ async def redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text(f"❌ Invalid key.\nPlease contact {ADMIN_USERNAME} to purchase a valid one.")
 
-# Send random messages
-async def send_random_message():
-    bot = Bot(TOKEN)
+# Send random messages to channel
+async def send_random_message(bot: Bot):
     while True:
         service = random.choice(services)
         name = random.choice(names)
-        otp = ''.join([str(random.randint(0, 9)) for _ in range(6)])
+        otp = generate_otp()
         message = f"🔐 OTP Alert!\n👤 Name: {name}\n🛠 Service: {service}\n🔢 OTP: {otp}"
         try:
             await bot.send_message(chat_id=CHANNEL_ID, text=message)
+            print("✔️ Sent:", message)
         except Exception as e:
             print("❌ Error:", e)
         await asyncio.sleep(random.randint(300, 900))
 
-@app.on_event("startup")
-async def on_startup():
-    app_bot.add_handler(CommandHandler("start", start))
-    app_bot.add_handler(CommandHandler("plan", plan))
-    app_bot.add_handler(CommandHandler("redeem", redeem))
-    asyncio.create_task(send_random_message())
-    await app_bot.bot.set_webhook("https://bot-2-splv.onrender.com/webhook")
+# FastAPI Root
+@app.get("/")
+async def root():
+    return {"status": "Bot is running!"}
 
+# Webhook Endpoint
 @app.post("/webhook")
 async def webhook(request: Request):
     payload = await request.json()
     update = Update.de_json(payload, app_bot.bot)
     await app_bot.process_update(update)
     return {"status": "ok"}
+
+# Startup setup
+@app.on_event("startup")
+async def startup_event():
+    app_bot.add_handler(CommandHandler("start", start))
+    app_bot.add_handler(CommandHandler("plan", plan))
+    app_bot.add_handler(CommandHandler("redeem", redeem))
+
+    # Set Webhook
+    await app_bot.bot.set_webhook("https://bot-2-splv.onrender.com/webhook")
+    print("✅ Webhook set successfully.")
+
+    # Start background task
+    asyncio.create_task(send_random_message(app_bot.bot))
