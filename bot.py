@@ -4,39 +4,31 @@ from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 import asyncio
 import random
 import nest_asyncio
-import os
 
 nest_asyncio.apply()
 
+# إعدادات البوت
 TOKEN = "8027706435:AAEzWtCBhIZPSo66BsC2CALd9X9F5LUVLWo"
 CHANNEL_ID = "@LAZARUS_OTP"
 ADMIN_USERNAME = "@CKRACKING_MOROCCO"
 VALID_KEYS = ["TRIYAL-1234", "DEMLO-9999"]
+user_subscriptions = {}
 
+# بيانات وهمية
 services = [
     "Netflix", "PayPal", "Bank", "Coinbase", "Spotify", "Cvv", "Pin", "Crypto",
     "Apple Pay", "Amazon", "Microsoft", "Venmo", "Cashapp", "Quadpay", "Bank Of America"
 ]
 names = [
     "John", "Alice", "Mark", "Sophia", "Leo", "Emma", "Ahmed", "Amine",
-    "Ahmed", "Jerry", "Salma", "William", "George", "Periz", "Nouh", "John", "Thomas", "Eric", "Mike"
+    "Jerry", "Salma", "William", "George", "Periz", "Nouh", "Thomas", "Eric", "Mike"
 ]
 
-user_subscriptions = {}
-
-# FastAPI app
-app = FastAPI()
-
-@app.get("/")
-async def root():
-    return {"status": "Bot is running!"}
-
-# Telegram bot
-app_bot = ApplicationBuilder().token(TOKEN).build()
-
+# توليد OTP
 def generate_otp():
     return ''.join([str(random.randint(0, 9)) for _ in range(6)])
 
+# الرسالة الترحيبية
 start_message = """
 🚀 Welcome to Our Otp Bot 🚀
 
@@ -76,7 +68,17 @@ SET CUSTOM VOICE
 ❓ Use ? in number to spoof random number
 """
 
-# Command Handlers
+# FastAPI
+app = FastAPI()
+
+@app.get("/")
+async def root():
+    return {"status": "Bot is running!"}
+
+# Telegram bot
+bot_app = ApplicationBuilder().token(TOKEN).build()
+
+# أوامر البوت
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("📢 Channel", url="https://t.me/LAZARUS_OTP")],
@@ -106,7 +108,7 @@ async def redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     args = context.args
     if not args:
-        await update.message.reply_text("🔑 Please send a key like this: /redeem YOUR_KEY", parse_mode="Markdown")
+        await update.message.reply_text("🔑 Please send a key like this: /redeem YOUR_KEY")
         return
     key = args[0].strip()
     if key in VALID_KEYS:
@@ -115,8 +117,8 @@ async def redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text(f"❌ Invalid key.\nPlease contact {ADMIN_USERNAME} to purchase a valid one.")
 
+# إرسال رسائل عشوائية للقناة
 async def send_random_message(bot: Bot):
-    await asyncio.sleep(5)  # Wait a bit for startup
     while True:
         service = random.choice(services)
         name = random.choice(names)
@@ -126,23 +128,26 @@ async def send_random_message(bot: Bot):
             await bot.send_message(chat_id=CHANNEL_ID, text=message)
             print("✔️ Sent:", message)
         except Exception as e:
-            print("❌ Error sending message:", e)
-        await asyncio.sleep(random.randint(300, 900))  # Between 5 and 15 minutes
+            print("❌ Error:", e)
+        await asyncio.sleep(random.randint(300, 900))
 
+# إعداد البوت عند بدء التشغيل
 @app.on_event("startup")
 async def startup_event():
-    app_bot.add_handler(CommandHandler("start", start))
-    app_bot.add_handler(CommandHandler("plan", plan))
-    app_bot.add_handler(CommandHandler("redeem", redeem))
+    bot_app.add_handler(CommandHandler("start", start))
+    bot_app.add_handler(CommandHandler("plan", plan))
+    bot_app.add_handler(CommandHandler("redeem", redeem))
+    # باقي الأوامر الأخرى تضاف هنا مستقبلاً حسب الحاجة
 
-    await app_bot.bot.set_webhook("https://bot-2-splv.onrender.com/webhook")
-    print("✅ Webhook set")
+    # Webhook
+    await bot_app.bot.set_webhook("https://bot-2-splv.onrender.com/webhook")
+    asyncio.create_task(send_random_message(bot_app.bot))
+    asyncio.create_task(bot_app.start())
 
-    asyncio.create_task(send_random_message(app_bot.bot))
-
+# Webhook endpoint
 @app.post("/webhook")
-async def telegram_webhook(request: Request):
-    payload = await request.json()
-    update = Update.de_json(payload, app_bot.bot)
-    await app_bot.process_update(update)
+async def webhook(request: Request):
+    data = await request.json()
+    update = Update.de_json(data, bot_app.bot)
+    await bot_app.process_update(update)
     return {"status": "ok"}
