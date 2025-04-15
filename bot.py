@@ -5,7 +5,6 @@ import asyncio
 import random
 import nest_asyncio
 
-# تطبيق Nest AsyncIO لتجنب تعارض الأحداث في بيئات متعددة مثل FastAPI و Telegram bot
 nest_asyncio.apply()
 
 # إعدادات البوت
@@ -29,8 +28,9 @@ user_subscriptions = {}
 # FastAPI app
 app = FastAPI()
 
-# تعريف رابط Webhook
-WEBHOOK_URL = "https://bot-2-splv.onrender.com/webhook"
+@app.get("/")
+async def root():
+    return {"status": "Bot is running!"}
 
 # Telegram bot application
 app_bot = ApplicationBuilder().token(TOKEN).build()
@@ -134,25 +134,27 @@ async def send_random_message(bot: Bot):
             print("❌ Error:", e)
         await asyncio.sleep(random.randint(300, 900))
 
-# إعداد Webhook
-@app.post("/webhook")
-async def webhook(req: Request):
-    data = await req.json()
-    update = Update.de_json(data, app_bot.bot)
-    await app_bot.process_update(update)
-    return {"ok": True}
-
-# بداية التطبيق
+# بدء التطبيق
 @app.on_event("startup")
 async def startup_event():
     app_bot.add_handler(CommandHandler("start", start))
     app_bot.add_handler(CommandHandler("plan", plan))
     app_bot.add_handler(CommandHandler("redeem", redeem))
 
-    # تفعيل Webhook
-    await app_bot.initialize()
-    await app_bot.bot.set_webhook(WEBHOOK_URL)
+    # تعيين Webhook
+    await app_bot.bot.set_webhook("https://bot-2-splv.onrender.com/webhook")
     print("✅ Webhook set successfully.")
 
-    asyncio.create_task(app_bot.start())  # بدء البوت مع Webhook
-    asyncio.create_task(send_random_message(app_bot.bot))  # إرسال الرسائل العشوائية للقناة
+    # بدء البوت و إرسال الرسائل العشوائية للقناة
+    asyncio.create_task(send_random_message(app_bot.bot))
+
+    # استخدام Long Polling مؤقتًا
+    await app_bot.start_polling()  # بدلًا من Webhook إذا كان لديك مشاكل مع Webhook
+
+# مسار Webhook لاستقبال التحديثات
+@app.post("/webhook")
+async def webhook(request: Request):
+    payload = await request.json()
+    update = Update.de_json(payload, app_bot.bot)
+    await app_bot.process_update(update)
+    return {"status": "ok"}
