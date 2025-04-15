@@ -1,7 +1,10 @@
 from fastapi import FastAPI, Request
 from telegram import Update, Bot, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
-import asyncio, random, os, nest_asyncio
+import asyncio
+import random
+import nest_asyncio
+import os
 
 nest_asyncio.apply()
 
@@ -21,13 +24,19 @@ names = [
 
 user_subscriptions = {}
 
-# FastAPI instance
+# FastAPI app
 app = FastAPI()
 
-# Telegram Bot
+@app.get("/")
+async def root():
+    return {"status": "Bot is running!"}
+
+# Telegram bot
 app_bot = ApplicationBuilder().token(TOKEN).build()
 
-# Start Message
+def generate_otp():
+    return ''.join([str(random.randint(0, 9)) for _ in range(6)])
+
 start_message = """
 🚀 Welcome to Our Otp Bot 🚀
 
@@ -67,11 +76,7 @@ SET CUSTOM VOICE
 ❓ Use ? in number to spoof random number
 """
 
-# Generate OTP
-def generate_otp():
-    return ''.join([str(random.randint(0, 9)) for _ in range(6)])
-
-# Commands
+# Command Handlers
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("📢 Channel", url="https://t.me/LAZARUS_OTP")],
@@ -100,11 +105,9 @@ DM @CKRACKING_MOROCCO to get your key 🗝
 async def redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     args = context.args
-
     if not args:
-        await update.message.reply_text("🔑 Please send a key like this: /redeem YOUR_KEY")
+        await update.message.reply_text("🔑 Please send a key like this: /redeem YOUR_KEY", parse_mode="Markdown")
         return
-
     key = args[0].strip()
     if key in VALID_KEYS:
         user_subscriptions[user_id] = True
@@ -112,8 +115,8 @@ async def redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text(f"❌ Invalid key.\nPlease contact {ADMIN_USERNAME} to purchase a valid one.")
 
-# Send random messages to channel
 async def send_random_message(bot: Bot):
+    await asyncio.sleep(5)  # Wait a bit for startup
     while True:
         service = random.choice(services)
         name = random.choice(names)
@@ -123,32 +126,23 @@ async def send_random_message(bot: Bot):
             await bot.send_message(chat_id=CHANNEL_ID, text=message)
             print("✔️ Sent:", message)
         except Exception as e:
-            print("❌ Error:", e)
-        await asyncio.sleep(random.randint(300, 900))
+            print("❌ Error sending message:", e)
+        await asyncio.sleep(random.randint(300, 900))  # Between 5 and 15 minutes
 
-# FastAPI Root
-@app.get("/")
-async def root():
-    return {"status": "Bot is running!"}
-
-# Webhook Endpoint
-@app.post("/webhook")
-async def webhook(request: Request):
-    payload = await request.json()
-    update = Update.de_json(payload, app_bot.bot)
-    await app_bot.process_update(update)
-    return {"status": "ok"}
-
-# Startup setup
 @app.on_event("startup")
 async def startup_event():
     app_bot.add_handler(CommandHandler("start", start))
     app_bot.add_handler(CommandHandler("plan", plan))
     app_bot.add_handler(CommandHandler("redeem", redeem))
 
-    # Set Webhook
     await app_bot.bot.set_webhook("https://bot-2-splv.onrender.com/webhook")
-    print("✅ Webhook set successfully.")
+    print("✅ Webhook set")
 
-    # Start background task
     asyncio.create_task(send_random_message(app_bot.bot))
+
+@app.post("/webhook")
+async def telegram_webhook(request: Request):
+    payload = await request.json()
+    update = Update.de_json(payload, app_bot.bot)
+    await app_bot.process_update(update)
+    return {"status": "ok"}
