@@ -109,15 +109,15 @@ async def redeem(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     args = context.args
 
-    if not args:
-        await update.message.reply_text("🔑 Please send a key like this: `/redeem YOUR_KEY`", parse_mode="Markdown")
-        return
+    if not args:  
+        await update.message.reply_text("🔑 Please send a key like this: `/redeem YOUR_KEY`", parse_mode="Markdown")  
+        return  
 
-    key = args[0].strip()
-    if key in VALID_KEYS:
-        user_subscriptions[user_id] = True
-        await update.message.reply_text("✅ Key accepted! Subscription activated.")
-    else:
+    key = args[0].strip()  
+    if key in VALID_KEYS:  
+        user_subscriptions[user_id] = True  
+        await update.message.reply_text("✅ Key accepted! Subscription activated.")  
+    else:  
         await update.message.reply_text(f"❌ Invalid key.\nPlease contact {ADMIN_USERNAME} to purchase a valid one.")
 
 # إرسال رسائل عشوائية للقناة
@@ -141,12 +141,15 @@ async def startup_event():
     app_bot.add_handler(CommandHandler("plan", plan))
     app_bot.add_handler(CommandHandler("redeem", redeem))
 
-    # تعيين Webhook
-    await app_bot.bot.set_webhook("https://bot-2-splv.onrender.com/webhook")
-    print("✅ Webhook set successfully.")
+    # تعيين Webhook  
+    await app_bot.bot.set_webhook("https://bot-2-splv.onrender.com/webhook")  
+    print("✅ Webhook set successfully.")  
 
-    # بدء إرسال الرسائل العشوائية للقناة
-    asyncio.create_task(send_random_message(app_bot.bot))
+    # بدء البوت و إرسال الرسائل العشوائية للقناة  
+    asyncio.create_task(send_random_message(app_bot.bot))  
+
+    # استخدم `run_polling()` بدلاً من start_polling()  
+    await app_bot.run_polling()  # هذا هو التعديل الأساسي هنا
 
 # مسار Webhook لاستقبال التحديثات
 @app.post("/webhook")
